@@ -12,7 +12,6 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 vim.g.mapleader = " "
-
 local map = vim.keymap.set
 
 require("lazy").setup({
@@ -106,9 +105,9 @@ require("lazy").setup({
     end,
   },
 
-  {
-    "hrsh7th/cmp-nvim-lsp",
-  },
+  { "hrsh7th/cmp-nvim-lsp" },
+  { "hrsh7th/cmp-buffer" },
+  { "hrsh7th/cmp-path" },
 
   {
     "L3MON4D3/LuaSnip",
@@ -144,11 +143,28 @@ require("lazy").setup({
       local cmp_autopairs = require("nvim-autopairs.completion.cmp")
       cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
 
+      local kind_icons = {
+        Text = "󰉿", Method = "󰆧", Function = "󰊕",
+        Constructor = "", Field = "󰜢", Variable = "󰀫",
+        Class = "󰠱", Interface = "", Module = "",
+        Property = "󰜢", Unit = "󰑭", Value = "󰎠",
+        Enum = "", Keyword = "󰌋", Snippet = "",
+        Color = "󰏘", File = "󰈙", Reference = "󰈇",
+        Folder = "󰉋", EnumMember = "",
+        Constant = "󰏿", Struct = "󰙅",
+        Event = "", Operator = "󰆕",
+        TypeParameter = ""
+      }
+
       cmp.setup({
         snippet = {
           expand = function(args)
             luasnip.lsp_expand(args.body)
           end,
+        },
+
+        experimental = {
+          ghost_text = true,
         },
 
         mapping = cmp.mapping.preset.insert({
@@ -174,11 +190,37 @@ require("lazy").setup({
               fallback()
             end
           end, { "i", "s" }),
+
+          ["<C-l>"] = cmp.mapping(function()
+            if luasnip.expand_or_jumpable() then
+              luasnip.expand_or_jump()
+            end
+          end, { "i", "s" }),
+
+          ["<C-h>"] = cmp.mapping(function()
+            if luasnip.jumpable(-1) then
+              luasnip.jump(-1)
+            end
+          end, { "i", "s" }),
         }),
+
+        formatting = {
+          format = function(entry, vim_item)
+            vim_item.kind = kind_icons[vim_item.kind] .. " " .. vim_item.kind
+            vim_item.menu = ({
+              nvim_lsp = "[LSP]",
+              luasnip = "[Snip]",
+              buffer = "[Buf]",
+              path = "[Path]",
+            })[entry.source.name]
+            return vim_item
+          end,
+        },
 
         sources = cmp.config.sources({
           { name = "nvim_lsp" },
           { name = "luasnip" },
+          { name = "path" },
         }, {
           { name = "buffer" },
         }),
@@ -204,7 +246,7 @@ require("lazy").setup({
           "lua_ls",
           "pyright",
           "html",
-          "ts_ls",
+          "tsserver",
           "clangd",
         },
       })
@@ -220,30 +262,16 @@ require("lazy").setup({
     config = function()
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
-      vim.lsp.config("lua_ls", {
-        capabilities = capabilities,
-      })
-
-      vim.lsp.config("pyright", {
-        capabilities = capabilities,
-      })
-
-      vim.lsp.config("html", {
-        capabilities = capabilities,
-      })
-
-      vim.lsp.config("ts_ls", {
-        capabilities = capabilities,
-      })
-
-      vim.lsp.config("clangd", {
-        capabilities = capabilities,
-      })
+      vim.lsp.config("lua_ls", { capabilities = capabilities })
+      vim.lsp.config("pyright", { capabilities = capabilities })
+      vim.lsp.config("html", { capabilities = capabilities })
+      vim.lsp.config("tsserver", { capabilities = capabilities })
+      vim.lsp.config("clangd", { capabilities = capabilities })
 
       vim.lsp.enable("lua_ls")
       vim.lsp.enable("pyright")
       vim.lsp.enable("html")
-      vim.lsp.enable("ts_ls")
+      vim.lsp.enable("tsserver")
       vim.lsp.enable("clangd")
 
       map("n", "K", vim.lsp.buf.hover, { desc = "Hover" })
@@ -278,6 +306,8 @@ require("lazy").setup({
     end,
   },
 })
+
+
 
 local builtin = require("telescope.builtin")
 
